@@ -1,0 +1,52 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+
+packages:
+  - curl
+  - wget
+  - tree
+  - nginx
+  - vim
+
+runcmd:
+  - sudo echo "=== Cloud-init nachal работу ===" >> /home/ubuntu/cloud-init-debug.txt
+  # Тестовая команда 5 - установка Docker
+  - sudo apt update -y
+ # - sudo apt install -y docker.io docker-compose
+ # - sudo systemctl enable docker
+ # - sudo systemctl start docker
+ # - sudo usermod -aG docker ubuntu
+  - sudo mkdir -m 0755 -p /etc/apt/keyrings
+  - sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - sudo chmod a+r /etc/apt/keyrings/docker.gpg
+  - sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - sudo apt update
+  - sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+  # Тестовая команда 6 - проверка Docker
+  - sudo docker --version >> /home/ubuntu/cloud-init-debug.txt 2>&1 || echo "Docker не установлен" >> /home/ubuntu/cloud-init-debug.txt
+
+  # Тестовая команда 7 - запуск тестового контейнера
+  - sudo docker run --rm hello-world >> /home/ubuntu/cloud-init-debug.txt 2>&1
+
+  # Тестовая команда 8
+  - sudo echo "=== Cloud-init завершил работу ===" >> /home/ubuntu/cloud-init-debug.txt
+  - sudo systemctl enable nginx
+  - sudo systemctl start nginx
+
+write_files:
+  - path: /var/www/html/index.html
+    content: |
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Welcome to Netology!</title>
+      </head>
+      <body>
+        <h1>Hello from Netology!</h1>
+        <p>This VM was provisioned with cloud-init.</p>
+      </body>
+      </html>
+    owner: root:root
+    permissions: '0644'
+final_message: "Cloud-init завершил выполнение за $UPTIME секунд"

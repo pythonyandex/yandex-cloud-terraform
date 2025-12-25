@@ -1,0 +1,32 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+.terraform.lock.hcl
+
+# Временные файлы
+*.log
+*.tmp
+*.temp
+
+# Конфиденциальные данные
+*.env
+*.pem
+*.key
+secrets/
+credentials/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.docker/
+*.tar.gz
+
+# Системные файлы
+.DS_Store
+Thumbs.db
