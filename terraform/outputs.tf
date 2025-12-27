@@ -25,7 +25,6 @@ output "mysql_username" {
   description = "MySQL username"
 }
 
-# Опционально: строка подключения (sensitive!)
 output "mysql_connection_string" {
   value       = "mysql://${module.mysql_cluster.username}:${var.mysql_password}@${module.mysql_cluster.host_fqdn}:3306/${module.mysql_cluster.database_name}"
   sensitive   = true

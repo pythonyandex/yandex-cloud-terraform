@@ -23,5 +23,4 @@ variable "mysql_password" {
   description = "Password for MySQL database user"
   type        = string
   sensitive   = true
-  default     = "SecurePass123!"  # В реальном проекте используйте terraform.tfvars
 }
