@@ -67,4 +67,22 @@ output "database_info" {
   description = "Database information"
   sensitive   = true
 }
+output "host_subnet_id" {
+  value       = yandex_mdb_mysql_cluster.this.host[0].subnet_id
+  description = "Subnet ID хоста MySQL"
+}
 
+output "host_network_info" {
+  value = {
+    fqdn            = yandex_mdb_mysql_cluster.this.host[0].fqdn
+    zone            = yandex_mdb_mysql_cluster.this.host[0].zone
+    subnet_id       = yandex_mdb_mysql_cluster.this.host[0].subnet_id
+    has_public_ip   = yandex_mdb_mysql_cluster.this.host[0].assign_public_ip
+  }
+  description = "Сетевая информация о хосте MySQL"
+}
+output "password" {
+  description = "MySQL password"
+  value       = yandex_mdb_mysql_user.this.password
+  sensitive   = true
+}

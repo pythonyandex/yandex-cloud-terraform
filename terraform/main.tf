@@ -108,11 +108,15 @@ resource "yandex_compute_instance" "app-vm" {
 #    source      = "/home/ruslan/main_work/docker"  # Локальная директория
 #    destination = "/home/ubuntu/"  # Директория на ВМ
 #  }
-  
-  metadata = {
-    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    user-data = "${file("${path.module}/cloud-init.yml")}"
-  }
+metadata = {
+  ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  user-data = templatefile("${path.module}/cloud-init.yml", {
+    mysql_host     = module.mysql_cluster.host_fqdn
+    mysql_username = module.mysql_cluster.username  # Проверьте имя пользователя в модуле
+    mysql_password = "Rm2014!!"  # Проверьте как называется output
+    mysql_database = module.mysql_cluster.database_name  # Проверьте имя БД в модуле
+  })
+}
 }
 
 

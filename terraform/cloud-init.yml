@@ -7,7 +7,10 @@ packages:
   - wget
   - tree
   - nginx
+  - git
   - vim
+  - dnsutils  
+  
 write_files:
   - path: /var/www/html/index.html
     content: |
@@ -29,47 +32,84 @@ write_files:
       This server was configured automatically via cloud-init.
     owner: ubuntu:ubuntu
     permissions: '0644'
-  - path: /home/ubuntu/env
+  - path: /home/ubuntu/shvirtd-test_YDB_Mysql/.env
     content: |
-      MYSQL_ROOT_PASSWORD=YtReWq4321
-      MYSQL_DATABASE=example
-      MYSQL_USER=app
-      MYSQL_PASSWORD=QwErTy1234
-      DB_PASSWORD=QwErTy1234
+      # Yandex Managed MySQL
+      DB_HOST=${mysql_host}
+      DB_PORT=3306
+      DB_NAME=${mysql_database}
+      DB_USER=${mysql_username}
+      DB_PASSWORD=${mysql_password}
+      MYSQL_SSL_CA=/etc/ssl/certs/ca-certificates.crt
+
+      # Application
+      APP_ENV=production
+      DEBUG=false
     owner: ubuntu:ubuntu
-    permissions: '0644'
+    permissions: '0600'
+
 runcmd:
-  - sudo echo "=== Cloud-init nachal работу ===" >> /home/ubuntu/cloud-init-debug.txt
-  # Тестовая команда 5 - установка Docker
-  - sudo apt update -y
- # - sudo apt install -y docker.io docker-compose
- # - sudo systemctl enable docker
- # - sudo systemctl start docker
- # - sudo usermod -aG docker ubuntu
-  - sudo mkdir -m 0755 -p /etc/apt/keyrings
-  - sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  - sudo chmod a+r /etc/apt/keyrings/docker.gpg
-  - sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-  - sudo apt update
-  - sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-
-
-  # Тестовая команда 8
-  - sudo echo "=== Cloud-init завершил работу ===" >> /home/ubuntu/cloud-init-debug.txt
-  - sudo systemctl enable nginx
-  - sudo systemctl start nginx
+  # Начало работы - записываем в debug файл
+  - echo "=== Cloud-init начал работу ===" >> /home/ubuntu/cloud-init-debug.txt
+  - date >> /home/ubuntu/cloud-init-debug.txt
+  
+  # Установка Docker
+  - apt update -y
+  - mkdir -m 0755 -p /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - chmod a+r /etc/apt/keyrings/docker.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt update -y
+  - apt install -y ca-certificates docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  
+  # Настройка NGINX
+  - systemctl enable nginx
+  - systemctl start nginx
+  
+  # Клонирование репозитория
   - cd /home/ubuntu
-  - sudo git clone https://github.com/pythonyandex/shvirtd-test.git
-  - sudo chown -R ubuntu:ubuntu /home/ubuntu/shvirtd-test
+  - git clone https://github.com/pythonyandex/shvirtd-test_YDB_Mysql.git
+  - chown -R ubuntu:ubuntu /home/ubuntu/shvirtd-test_YDB_Mysql
   
-  # Создаем .env файл с переменными окружения
-  - cd /home/ubuntu/shvirtd-test
-  #- sudo chown ubuntu:ubuntu .env  
-  - sudo mv /home/ubuntu/env /home/ubuntu/shvirtd-test/.env
+  # Логирование информации о MySQL (используем переменные из Terraform)
+  - |
+    echo "MySQL Host from Terraform: ${mysql_host}" >> /home/ubuntu/cloud-init-debug.txt
+    echo "MySQL User: ${mysql_username}" >> /home/ubuntu/cloud-init-debug.txt
+    echo "MySQL Database: ${mysql_database}" >> /home/ubuntu/cloud-init-debug.txt
+  
+  # Получаем IP через DNS
+  - |
+    MYSQL_IP=$(dig +short ${mysql_host} | head -1)
+    echo "MySQL IP resolved: $MYSQL_IP" >> /home/ubuntu/cloud-init-debug.txt
+  
+  # Обновляем compose.yaml
+  - cd /home/ubuntu/shvirtd-test_YDB_Mysql
+  - sed -i "s|rc1a-lup7249mt9fr6plj.mdb.yandexcloud.net|${mysql_host}|g" compose.yaml
+  - sed -i "s|192.168.10.6|$MYSQL_IP|g" compose.yaml
+  
+  # Устанавливаем SSL сертификат Yandex
+  - curl -fsSL https://storage.yandexcloud.net/cloud-certs/CA.pem | tee /etc/ssl/certs/yandex-ca.pem > /dev/null
+  
   # Запускаем Docker Compose
-  - sudo docker-compose build
-  - sudo docker-compose up -d
-  - sudo iptables -I INPUT -p tcp --dport 8090 -j ACCEPT
+  - docker compose build --no-cache
+  - docker compose up -d
   
+  # Открываем порт 8090
+  - iptables -I INPUT -p tcp --dport 8090 -j ACCEPT
+  
+  # Проверяем запущенные контейнеры
+  - echo "Docker containers status:" >> /home/ubuntu/cloud-init-debug.txt
+  - docker ps -a >> /home/ubuntu/cloud-init-debug.txt
+  
+  # Копируем файлы окружения
+  - cp /home/ubuntu/shvirtd-test_YDB_Mysql/.env /home/ubuntu/
+  - chown ubuntu:ubuntu /home/ubuntu/.env
+  
+  # Завершение работы
+  - echo "=== Cloud-init завершил работу ===" >> /home/ubuntu/cloud-init-debug.txt
+  - date >> /home/ubuntu/cloud-init-debug.txt
+  - echo "Directory contents:" >> /home/ubuntu/cloud-init-debug.txt
+  - ls -la /home/ubuntu/ >> /home/ubuntu/cloud-init-debug.txt
+  - ls -la /home/ubuntu/shvirtd-test_YDB_Mysql/ >> /home/ubuntu/cloud-init-debug.txt
 
 final_message: "Cloud-init завершил выполнение за $UPTIME секунд"
