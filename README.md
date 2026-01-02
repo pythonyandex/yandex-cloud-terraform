@@ -32,4 +32,4 @@
 
 ## Решение 4.
 Для переключения на на БД в Yandex Cloud был добавлен [mysql.tf](https://github.com/pythonyandex/yandex-cloud-terraform/blob/main/terraform/mysql.tf). 
-Для корректной настоойки приложения, я сделал клон - [shvirtd-test_YDB_Mysql](https://github.com/pythonyandex/shvirtd-test_YDB_Mysql/tree/main) своего репозитория из задания 3, указал в compose.yaml использование Yandex БД. Terraform при развертывании APP и Yandex БД одновременно, при помощи cloud-init.yml БД меняется в compose.yaml  на новосозданную БД. Подскажите, пожалуйста, как можно сделать правильно?
+Для корректной настоойки приложения, я сделал клон - [shvirtd-test_YDB_Mysql](https://github.com/pythonyandex/shvirtd-test_YDB_Mysql/tree/main) своего репозитория из задания 3, указал в compose.yaml использование Yandex БД. Terraform при развертывании App и Yandex БД одновременно, при помощи cloud-init.yml БД меняется в compose.yaml  на новосозданную БД. Подскажите, пожалуйста, как можно сделать более правильно?
